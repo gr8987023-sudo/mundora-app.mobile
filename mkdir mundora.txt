@@ -1,0 +1,1002 @@
+mkdir mundora
+cd mundora"""
+================================================================================
+ MUNDORA MOBILE — RPG procedural para smartphones (sem IA)
+ ================================================================================
+ Requisitos: pip install streamlit
+ Rodar: streamlit run mundora.py
+================================================================================
+"""
+
+import math
+import random
+
+import streamlit as st
+
+st.set_page_config(
+    page_title="MUNDORA",
+    page_icon="⚔️",
+    layout="centered",
+    initial_sidebar_state="collapsed",
+)
+
+# ==============================================================================
+# CSS MOBILE
+# ==============================================================================
+st.markdown("""
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;600;700;800&display=swap');
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body, [class*="css"] { font-family:'Manrope',sans-serif; overscroll-behavior: none; }
+  .stApp { background:#0a0d12; color:#e8edf4; }
+  .block-container { padding: 0.5rem 0.8rem 3rem 0.8rem !important; max-width: 100% !important; }
+  header[data-testid="stHeader"], footer, #MainMenu,
+  [data-testid="collapsedControl"], [data-testid="stToolbar"] { display: none; }
+
+  .hud { background:linear-gradient(180deg,#0f1520,#0a0d12); border:1px solid #1e2a38;
+         border-radius:14px; padding:10px 12px; margin-bottom:10px; position:sticky; top:0; z-index:100; }
+  .hud-row { display:flex; justify-content:space-between; align-items:center; gap:6px; margin-bottom:6px; }
+  .hud-badge { font-family:'DM Mono',monospace; font-size:0.66rem; letter-spacing:.06em;
+               color:#8b9aab; text-transform:uppercase; }
+  .hud-value { font-weight:800; font-size:0.95rem; color:#e8edf4; }
+  .bar { height:8px; background:#1a2330; border-radius:4px; overflow:hidden; margin-top:2px; }
+  .bar-hp { background:linear-gradient(90deg,#ff5e5e,#ffb347); }
+  .bar-mp { background:linear-gradient(90deg,#5e9eff,#c08aff); }
+  .bar-xp { background:linear-gradient(90deg,#8ce6d1,#8aa9ff); }
+  .bar-fill { height:100%; transition:width .4s ease; }
+
+  .card { border:1px solid #1e2a38; border-radius:14px; padding:14px;
+          background:rgba(15,21,32,.85); margin-bottom:10px; }
+  .card-title { font-weight:800; font-size:1.05rem; color:#e8edf4; margin-bottom:4px; }
+  .card-sub { font-family:'DM Mono',monospace; font-size:0.66rem; color:#8b9aab;
+              text-transform:uppercase; letter-spacing:.06em; }
+  .card-desc { color:#aab8c8; font-size:0.85rem; margin-top:6px; line-height:1.5; }
+
+  .narration { border:1px solid #6db8ff; border-radius:12px; padding:12px;
+               background:linear-gradient(135deg,rgba(30,60,100,.35),rgba(20,40,70,.4));
+               margin-bottom:10px; color:#e0ecff; font-style:italic; font-size:0.9rem;
+               line-height:1.55; }
+  .hint { border:1px solid #ffb347; border-radius:12px; padding:10px 12px;
+          background:rgba(80,50,10,.3); margin-bottom:10px; color:#ffe0b0;
+          font-size:0.85rem; line-height:1.5; }
+
+  .biome-floresta{border-left:4px solid #6dd47e}
+  .biome-deserto{border-left:4px solid #ffb347}
+  .biome-gelo{border-left:4px solid #8aa9ff}
+  .biome-vulcão{border-left:4px solid #ff5e5e}
+  .biome-ruínas{border-left:4px solid #c08aff}
+  .biome-pântano{border-left:4px solid #8ce6d1}
+  .biome-montanha{border-left:4px solid #aab8c8}
+
+  .rar-Comum{border-left:4px solid #8b9aab}.rar-Incomum{border-left:4px solid #6dd47e}
+  .rar-Raro{border-left:4px solid #6db8ff}.rar-Épico{border-left:4px solid #c08aff}
+  .rar-Lendário{border-left:4px solid #ffb347}
+
+  .enemy-card { border:1px solid #4a2530;
+                background:linear-gradient(180deg,rgba(80,20,30,.35),rgba(40,10,15,.5));
+                border-radius:14px; padding:16px; text-align:center; margin-bottom:10px; }
+  .enemy-name { font-weight:900; font-size:1.1rem; color:#ffb0b0; }
+  .boss-card { border:2px solid #ff5e5e;
+               background:linear-gradient(180deg,rgba(120,10,20,.4),rgba(40,5,10,.7));
+               border-radius:16px; padding:18px; text-align:center;
+               box-shadow:0 0 40px rgba(255,94,94,.25); margin-bottom:10px; }
+  .boss-name { font-weight:900; font-size:1.3rem; color:#ff5e5e; letter-spacing:.04em; }
+  .phase-badge { display:inline-block; padding:3px 10px; border-radius:20px; background:#ff5e5e;
+                 color:#fff; font-family:'DM Mono',monospace; font-size:0.65rem;
+                 letter-spacing:.1em; font-weight:700; }
+
+  .log { background:#05080d; border:1px solid #1e2a38; border-radius:12px; padding:10px 12px;
+         max-height:180px; overflow-y:auto; font-family:'DM Mono',monospace;
+         font-size:0.78rem; line-height:1.7; }
+  .log-crit{color:#ffb347;font-weight:700}.log-dmg{color:#ff6b6b}.log-heal{color:#6dd47e}
+  .log-info{color:#8aa9ff}.log-sys{color:#8b9aab;font-style:italic}
+  .log-magic{color:#c08aff;font-weight:700}
+
+  div.stButton > button { border-radius:12px; border:1px solid #2a3a4a; min-height:48px;
+                          font-weight:700; font-size:0.95rem; padding:10px 14px;
+                          background:#151e29; color:#e8edf4; width:100%; transition:transform .1s; }
+  div.stButton > button:active { transform:scale(0.97); }
+  div.stButton > button[kind="primary"] { background:linear-gradient(180deg,#8ce6d1,#6bc4b3);
+                                          color:#07110f; border-color:#8ce6d1;
+                                          box-shadow:0 4px 20px rgba(140,230,209,.25); }
+  div.stButton > button:disabled { opacity:.4; }
+
+  input, textarea, [data-baseweb="select"] > div {
+    min-height:48px !important; background:#0f1520 !important; border-color:#1e2a38 !important;
+    color:#e8edf4 !important; border-radius:10px !important; font-size:0.9rem !important;
+  }
+  .element-container { margin-bottom:4px !important; }
+  div[data-testid="stVerticalBlock"] > div { gap: 0.3rem !important; }
+  @media (max-width:380px) {
+    .block-container { padding-left:0.5rem !important; padding-right:0.5rem !important; }
+  }
+</style>
+""", unsafe_allow_html=True)
+
+# ==============================================================================
+# CONSTANTES
+# ==============================================================================
+BIOMES = {
+    "floresta":{"emoji":"🌲","color":"#0d3322","stroke":"#6dd47e",
+                "enemies":["Aberração Biomecânica","Aberração Mutante"]},
+    "deserto":{"emoji":"🏜️","color":"#3a2a10","stroke":"#ffb347",
+               "enemies":["Fragmento Caótico","Aberração Biomecânica"]},
+    "gelo":{"emoji":"❄️","color":"#0f2838","stroke":"#8aa9ff",
+            "enemies":["Aberração Mutante","Entidade N40"]},
+    "vulcão":{"emoji":"🌋","color":"#3a0f0f","stroke":"#ff5e5e",
+              "enemies":["Sentinela Abissal","Aberração Mutante"]},
+    "ruínas":{"emoji":"🏛️","color":"#1e1e2e","stroke":"#c08aff",
+              "enemies":["Fragmento Caótico","Sentinela Abissal"]},
+    "pântano":{"emoji":"🌿","color":"#1e2a10","stroke":"#8ce6d1",
+               "enemies":["Aberração Biomecânica","Fragmento Caótico"]},
+    "montanha":{"emoji":"⛰️","color":"#2a2a3a","stroke":"#aab8c8",
+                "enemies":["Entidade N40","Sentinela Abissal"]},
+}
+
+NP = ["Val","Mor","Kar","Thar","Zy","Nex","Or","Vel","Ash","Rho","Bal","Cry","Dun","Ely","Fen"]
+NS = ["dor","heim","gard","mir","thal","ven","kar","nath","riel","gorn","via","nox","sha","ryn","dus"]
+
+BOSS_NAMES = ["O OLHO DE PISUL","O DEVORADOR DE NOMES","A COROA AFOGADA",
+              "O SILÊNCIO ENTRE MUNDOS","A MENTE COLETIVA","O PRIMEIRO ECO"]
+
+REGION_DESCS = [
+    "Névoa cobre o horizonte. Algo se move entre as sombras.",
+    "Silêncio pesado no ar. Nem os pássaros ousam cantar.",
+    "Ecos de batalhas antigas ainda ressoam por aqui.",
+    "Rastros de criaturas marcam o chão há dias.",
+    "O chão pulsa com uma energia estranha e antiga.",
+    "Vento carrega sussurros em línguas esquecidas.",
+    "Ossos antigos se misturam às pedras do caminho.",
+    "Uma luz pálida pisca no fundo da região.",
+]
+
+ENEMIES = {
+    "Aberração Biomecânica":{"hp":90,"atk":12,"def":4,"xp":30,"gold":25,
+        "abilities":["Golpe de Tentáculo","Visão Analítica"],
+        "desc":"Olho gigante, tentáculos e engrenagens."},
+    "Aberração Mutante":{"hp":130,"atk":16,"def":6,"xp":45,"gold":40,
+        "abilities":["Feixe Ocular","Fúria Mutante"],
+        "desc":"Múltiplos olhos, armadura assimétrica."},
+    "Sentinela Abissal":{"hp":200,"atk":22,"def":10,"xp":80,"gold":90,
+        "abilities":["Feixe Perfurante","Chicote de Tentáculos"],
+        "desc":"Totem cósmico flutuante."},
+    "Fragmento Caótico":{"hp":70,"atk":28,"def":2,"xp":60,"gold":70,
+        "abilities":["Lâminas Flutuantes","Pulso Instável"],
+        "desc":"Artefato flutuante instável."},
+    "Entidade N40":{"hp":280,"atk":24,"def":14,"xp":120,"gold":150,
+        "abilities":["Ataque 360°","Escudo Frontal","Sobrecarga"],
+        "desc":"Mecha orgânico blindado N40."},
+}
+
+BOSS_PHASES = [
+    {"name":"FASE 1 · O VIGIA","hp":200,"atk":18,"def":8,
+     "abilities":["Olhar Petrificante","Raio Ocular","Chamado do Abismo"],
+     "dialogue":"As pálpebras se abrem lentamente..."},
+    {"name":"FASE 2 · O COLOSSO","hp":300,"atk":26,"def":14,
+     "abilities":["Pulso Biomecânico","Chuva de Tentáculos","Devorar Essência"],
+     "dialogue":"A montanha se ergue. Milhares de tentáculos se movem."},
+    {"name":"FASE 3 · O NÚCLEO","hp":400,"atk":32,"def":18,
+     "abilities":["Aniquilação Total","Colapso Temporal","Grito do Vazio"],
+     "dialogue":"A forma se desfaz. Você vê o que há por trás do mundo."},
+]
+
+ITEMS = {
+    "Fragmento Caótico":{"type":"arma","rarity":"Lendário","value":400,
+        "atk_bonus":15,"effect":"+15 ATK, +20% crítico"},
+    "Lâmina de Eco":{"type":"arma","rarity":"Incomum","value":80,
+        "atk_bonus":6,"effect":"+6 ATK"},
+    "Cajado do Olho":{"type":"arma","rarity":"Raro","value":180,
+        "atk_bonus":4,"mag_bonus":8,"effect":"+4 ATK, +8 MAG"},
+    "Placas em Zigue-Zague":{"type":"armadura","rarity":"Raro","value":150,
+        "def_bonus":8,"effect":"+8 DEF"},
+    "Manto da Névoa":{"type":"armadura","rarity":"Incomum","value":90,
+        "def_bonus":4,"effect":"+4 DEF"},
+    "Poção de Restauração":{"type":"consumível","rarity":"Comum","value":25,
+        "effect":"Cura 50 HP","heal":50},
+    "Poção de Mana":{"type":"consumível","rarity":"Comum","value":30,
+        "effect":"Restaura 30 MP","mana":30},
+    "Elixir de Fúria":{"type":"consumível","rarity":"Raro","value":60,
+        "effect":"ATK +50% por 3 turnos","buff":"atk"},
+}
+
+SPELLS = {
+    "Bola de Fogo":{"cost":8,"type":"damage","power":25,"element":"🔥","desc":"Dano alto em alvo único."},
+    "Raio Gélido":{"cost":6,"type":"damage","power":18,"element":"❄️","desc":"Dano médio + 30% congelar."},
+    "Cura Vital":{"cost":10,"type":"heal","power":60,"element":"💚","desc":"Restaura 60 HP."},
+    "Escudo Arcano":{"cost":7,"type":"buff","power":10,"element":"🛡","desc":"+10 DEF por 3 turnos."},
+    "Drenar Vida":{"cost":12,"type":"drain","power":20,"element":"🩸","desc":"20 dano + recupera metade."},
+}
+
+QUEST_TEMPLATES = [
+    {"type":"kill","target":"Aberração Biomecânica","count":3,"title":"Purificação","reward_gold":150,"reward_xp":80,"reward_item":"Placas em Zigue-Zague"},
+    {"type":"kill","target":"Fragmento Caótico","count":2,"title":"Caça aos Fragmentos","reward_gold":200,"reward_xp":100,"reward_item":"Cajado do Olho"},
+    {"type":"kill","target":"Aberração Mutante","count":3,"title":"Erradicar Mutação","reward_gold":180,"reward_xp":90,"reward_item":"Manto da Névoa"},
+    {"type":"kill","target":"Sentinela Abissal","count":1,"title":"Silenciar o Vigia","reward_gold":250,"reward_xp":130,"reward_item":"Fragmento Caótico"},
+    {"type":"item","target":"Poção de Mana","count":3,"title":"Suprimentos Arcanos","reward_gold":120,"reward_xp":60,"reward_item":"Poção de Restauração"},
+    {"type":"item","target":"Elixir de Fúria","count":2,"title":"Fúria Engarrafada","reward_gold":200,"reward_xp":110,"reward_item":"Lâmina de Eco"},
+]
+
+NPC_NAMES = ["Mara","Cael","Iria","Nilo","Zara","Vex","Orun","Sel","Kai","Ryn","Dara","Fen","Ash","Lira"]
+
+# Narrações locais (sem IA)
+NARRATIONS = {
+    "start":[
+        "O ar fica pesado quando o inimigo emerge das sombras.",
+        "Um silêncio antigo precede o ataque. Algo despertou.",
+        "Você sente um frio na espinha. O combate começou.",
+        "A criatura avança sem hesitar. Sem tempo para pensar.",
+    ],
+    "crit":[
+        "Seu golpe encontra o ponto fraco — a criatura cambaleia.",
+        "Um acerto preciso rasga a guarda do inimigo.",
+        "Você atinge em cheio. A criatura urra de dor.",
+        "Golpe devastador! O inimigo recua atordoado.",
+    ],
+    "miss":[
+        "Seu ataque corta apenas o ar.",
+        "A criatura desvia no último instante.",
+        "Você erra por um fio de cabelo.",
+    ],
+    "dmg":[
+        "Você sente o impacto em seus ossos.",
+        "A dor queima, mas você permanece de pé.",
+        "Um golpe pesado te faz recuar um passo.",
+    ],
+    "heal":[
+        "Uma energia morna preenche suas veias.",
+        "Seu corpo se refaz lentamente.",
+        "A dor diminui. Você respira aliviado.",
+    ],
+    "win":[
+        "O inimigo tomba. VITÓRIA é sua.",
+        "A criatura se desfaz em pó diante de você.",
+        "Silêncio. O combate acabou.",
+    ],
+    "death":[
+        "Silêncio. Você cai de joelhos.",
+        "A escuridão toma conta dos seus olhos.",
+    ],
+    "boss_p1":["Um olho colossal se abre no topo da montanha.","O chão treme — algo antigo despertou."],
+    "boss_p2":["O colosso se ergue, tentáculos cobrindo o céu.","A montanha se move. Você não devia estar aqui."],
+    "boss_p3":["A forma se desfaz — você vê o vazio por trás do mundo.","A realidade se rasga. O núcleo pulsa diante de você."],
+}
+
+HINTS = [
+    "💡 Use Escudo Arcano antes de atacar se seu HP estiver abaixo de 50%.",
+    "💡 Fragmento Caótico dá +20% crítico — equipe-o antes de chefes.",
+    "💡 Elixir de Fúria + Bola de Fogo = dano máximo.",
+    "💡 Defenda se o inimigo tiver ATK alto — reduz 50% do dano.",
+    "💡 Volte ao mapa se seu HP estiver crítico. Não morra por orgulho.",
+    "💡 Criaturas com DEF baixa (Fragmento) caem rápido com ataques básicos.",
+    "💡 Guarde MP para o boss final — Cura Vital faz diferença.",
+    "💡 Venda itens raros que você não usa para comprar poções.",
+]
+
+def narrate(event):
+    return random.choice(NARRATIONS.get(event, ["Algo acontece..."]))
+
+def get_hint():
+    return random.choice(HINTS)
+
+# ==============================================================================
+# GERADOR PROCEDURAL
+# ==============================================================================
+def generate_world(seed=None):
+    if seed is not None: random.seed(seed)
+    num = random.randint(6, 9)
+    regions = {}
+    for i in range(num):
+        row = i // 2; col = i % 2
+        y = 100 + row * 130 + random.uniform(-20, 20)
+        x = 150 + col * 200 + random.uniform(-30, 30)
+        biome = random.choice(list(BIOMES.keys()))
+        b = BIOMES[biome]
+        name = random.choice(NP) + random.choice(NS)
+        while name in regions: name = random.choice(NP) + random.choice(NS)
+        enemies = random.sample(b["enemies"], k=min(len(b["enemies"]), random.randint(1,2)))
+        regions[name] = {
+            "x":x,"y":y,"r":random.randint(38,48),"biome":biome,
+            "emoji":b["emoji"],"color":b["color"],"stroke":b["stroke"],
+            "desc":random.choice(REGION_DESCS),
+            "enemies":enemies,"danger":random.randint(1,5),
+            "has_boss":False,"npc":None,
+        }
+    boss_region = random.choice(list(regions.keys()))
+    regions[boss_region]["has_boss"] = True
+    regions[boss_region]["enemies"] = []
+    regions[boss_region]["biome"] = "ruínas"
+    regions[boss_region]["stroke"] = "#ff5e5e"
+    regions[boss_region]["emoji"] = "👁️"
+    regions[boss_region]["desc"] = "O coração pulsante do mundo. Algo antigo dorme aqui."
+
+    connections = []
+    rl = list(regions.keys())
+    for i in range(len(rl)-1): connections.append((rl[i], rl[i+1]))
+    if len(rl) > 4:
+        connections.append((rl[0], rl[2]))
+        connections.append((rl[-1], rl[-3]))
+
+    return {"regions":regions,"connections":connections,
+            "boss_region":boss_region,"boss_name":random.choice(BOSS_NAMES)}
+
+# ==============================================================================
+# ESTADO
+# ==============================================================================
+def init_state():
+    defaults = {
+        "p_hp":100,"p_hp_max":100,"p_mp":60,"p_mp_max":60,
+        "p_atk":12,"p_def":6,"p_mag":8,
+        "p_level":1,"p_xp":0,"p_xp_next":100,
+        "inventory":[
+            {"name":"Poção de Restauração","qty":3},
+            {"name":"Poção de Mana","qty":2},
+            {"name":"Elixir de Fúria","qty":1},
+            {"name":"Lâmina de Eco","qty":1},
+        ],
+        "equipped_weapon":None,"equipped_armor":None,
+        "in_combat":False,"in_boss":False,
+        "enemy":None,"enemy_hp":0,"enemy_hp_max":0,"enemy_frozen":False,
+        "boss_phase":0,"boss_hp":0,"boss_hp_max":0,
+        "turn":0,"log":[],
+        "player_buff_atk":0,"player_buff_def":0,"player_defending":False,
+        "current_region":None,"visited":[],
+        "total_gold":100,"total_kills":0,"kill_count":{},
+        "quests_done":[],"boss_defeated":False,"game_complete":False,
+        "world":None,"world_seed":None,
+        "view":"mapa","show_spells":False,"show_items":False,
+        "narration":"","hint":"",
+    }
+    for k,v in defaults.items():
+        if k not in st.session_state: st.session_state[k] = v
+
+init_state()
+
+def new_world(seed=None):
+    world = generate_world(seed)
+    st.session_state.world = world
+    st.session_state.world_seed = seed
+    st.session_state.current_region = None
+    st.session_state.visited = []
+    st.session_state.boss_defeated = False
+    st.session_state.game_complete = False
+    st.session_state.quests_done = []
+    st.session_state.view = "mapa"
+
+    region_names = [r for r in world["regions"] if not world["regions"][r]["has_boss"]]
+    npc_regions = random.sample(region_names, min(3, len(region_names)))
+    used = set()
+    for i, rname in enumerate(npc_regions):
+        available = [q for q in QUEST_TEMPLATES if q["title"] not in used]
+        if not available: break
+        q = random.choice(available); used.add(q["title"])
+        npc_name = random.choice(NPC_NAMES) + " " + random.choice(NS).capitalize()
+        world["regions"][rname]["npc"] = {
+            "name":npc_name,
+            "title":random.choice(["Cartógrafo","Guardião","Escavador","Batedor","Sentinela"]),
+            "dialog":random.choice([
+                "Vi coisas que não deviam existir.",
+                "O mundo mudou desde o último eclipse.",
+                "Há uma dívida antiga a ser paga.",
+                "Ajuda-me e eu te ajudarei.",
+            ]),
+            "quest":{"id":f"q_{i}_{rname}","title":q["title"],
+                     "goal":f"{'Derrotar' if q['type']=='kill' else 'Obter'} {q['count']} {q['target']}",
+                     "requires":{"kill" if q["type"]=="kill" else "item":q["target"],"count":q["count"]},
+                     "reward_gold":q["reward_gold"],"reward_xp":q["reward_xp"],
+                     "reward_item":q["reward_item"]},
+        }
+
+if st.session_state.world is None:
+    new_world()
+
+# ==============================================================================
+# HELPERS
+# ==============================================================================
+def add_log(text, cls="log-info"):
+    st.session_state.log.append({"text":f"[T{st.session_state.turn}] {text}","cls":cls})
+
+def add_item(name, qty=1):
+    for it in st.session_state.inventory:
+        if it["name"]==name: it["qty"]+=qty; return
+    st.session_state.inventory.append({"name":name,"qty":qty})
+
+def remove_item(name, qty=1):
+    for it in st.session_state.inventory:
+        if it["name"]==name: it["qty"]-=qty
+    st.session_state.inventory = [i for i in st.session_state.inventory if i["qty"]>0]
+
+def count_item(name):
+    for it in st.session_state.inventory:
+        if it["name"]==name: return it["qty"]
+    return 0
+
+def register_kill(enemy_name):
+    st.session_state.kill_count[enemy_name] = st.session_state.kill_count.get(enemy_name,0)+1
+    st.session_state.total_kills += 1
+
+def add_xp(amount):
+    st.session_state.p_xp += amount
+    while st.session_state.p_xp >= st.session_state.p_xp_next:
+        st.session_state.p_xp -= st.session_state.p_xp_next
+        st.session_state.p_level += 1
+        st.session_state.p_hp_max += 15
+        st.session_state.p_hp = st.session_state.p_hp_max
+        st.session_state.p_mp_max += 8
+        st.session_state.p_mp = st.session_state.p_mp_max
+        st.session_state.p_atk += 3
+        st.session_state.p_def += 2
+        st.session_state.p_mag += 2
+        st.session_state.p_xp_next = int(100 * (1 + st.session_state.p_level * 0.5))
+        add_log(f"🌟 LEVEL UP! Nível {st.session_state.p_level}!", "log-crit")
+
+def check_quest_completion():
+    for rname, rdata in st.session_state.world["regions"].items():
+        npc = rdata.get("npc")
+        if not npc: continue
+        q = npc["quest"]
+        if q["id"] in st.session_state.quests_done: continue
+        req = q["requires"]
+        done = False
+        if "kill" in req: done = st.session_state.kill_count.get(req["kill"],0) >= req["count"]
+        elif "item" in req: done = count_item(req["item"]) >= req["count"]
+        if done:
+            st.session_state.quests_done.append(q["id"])
+            st.session_state.total_gold += q["reward_gold"]
+            add_xp(q["reward_xp"]); add_item(q["reward_item"],1)
+            st.toast(f"✅ {q['title']}! +{q['reward_gold']}💰")
+
+# ==============================================================================
+# COMBATE
+# ==============================================================================
+def is_boss(): return st.session_state.in_boss
+
+def get_enemy_stats():
+    if is_boss():
+        phase = BOSS_PHASES[st.session_state.boss_phase]
+        return {"hp":st.session_state.boss_hp,"atk":phase["atk"],"def":phase["def"],
+                "abilities":phase["abilities"],
+                "name":f"{st.session_state.world['boss_name']} · {phase['name']}"}
+    e = ENEMIES[st.session_state.enemy]
+    return {**e,"name":st.session_state.enemy}
+
+def player_attack():
+    e = get_enemy_stats()
+    base = st.session_state.p_atk
+    w = st.session_state.equipped_weapon
+    if w and "atk_bonus" in ITEMS.get(w,{}): base += ITEMS[w]["atk_bonus"]
+    if st.session_state.player_buff_atk > 0:
+        base = int(base*1.5); st.session_state.player_buff_atk -= 1
+    roll = random.randint(1,20)
+    crit = 10 + (20 if w == "Fragmento Caótico" else 0)
+    if roll <= 2:
+        add_log("💨 Você errou!", "log-sys")
+        st.session_state.narration = narrate("miss")
+        return
+    dmg = max(1, base - e["def"] + random.randint(-3,3))
+    if roll <= crit + 10:
+        dmg *= 2; add_log(f"⚡ CRÍTICO! {dmg} dano!", "log-crit")
+        st.session_state.narration = narrate("crit")
+    else:
+        add_log(f"⚔️ {dmg} de dano.", "log-dmg")
+    if is_boss(): st.session_state.boss_hp -= dmg
+    else: st.session_state.enemy_hp -= dmg
+
+def player_defend():
+    st.session_state.player_defending = True
+    add_log("🛡 Defendendo (+50% DEF).", "log-info")
+
+def player_cast_spell(spell_name):
+    spell = SPELLS[spell_name]
+    if st.session_state.p_mp < spell["cost"]:
+        add_log("❌ Mana insuficiente!", "log-sys"); return False
+    st.session_state.p_mp -= spell["cost"]
+    e = get_enemy_stats()
+    w = st.session_state.equipped_weapon
+    mag = st.session_state.p_mag + (ITEMS.get(w,{}).get("mag_bonus",0) if w else 0)
+    if spell["type"] == "damage":
+        dmg = max(1, spell["power"] + mag - e["def"]//2)
+        if is_boss(): st.session_state.boss_hp -= dmg
+        else: st.session_state.enemy_hp -= dmg
+        add_log(f"{spell['element']} {spell_name}: {dmg} dano!", "log-magic")
+        if spell_name == "Raio Gélido" and random.random() < 0.3:
+            st.session_state.enemy_frozen = True
+            add_log("❄️ Congelado!", "log-magic")
+    elif spell["type"] == "heal":
+        st.session_state.p_hp = min(st.session_state.p_hp_max, st.session_state.p_hp+spell["power"])
+        add_log(f"💚 +{spell['power']} HP.", "log-heal")
+        st.session_state.narration = narrate("heal")
+    elif spell["type"] == "buff":
+        st.session_state.player_buff_def = 3
+        add_log(f"🛡 +{spell['power']} DEF.", "log-magic")
+    elif spell["type"] == "drain":
+        dmg = spell["power"] + mag//2; heal = dmg//2
+        if is_boss(): st.session_state.boss_hp -= dmg
+        else: st.session_state.enemy_hp -= dmg
+        st.session_state.p_hp = min(st.session_state.p_hp_max, st.session_state.p_hp+heal)
+        add_log(f"🩸 {dmg} dano, +{heal} HP.", "log-magic")
+    return True
+
+def player_use_item(name):
+    data = ITEMS.get(name,{})
+    if data.get("heal"):
+        st.session_state.p_hp = min(st.session_state.p_hp_max, st.session_state.p_hp+data["heal"])
+        add_log(f"🧪 +{data['heal']} HP.", "log-heal")
+    elif data.get("mana"):
+        st.session_state.p_mp = min(st.session_state.p_mp_max, st.session_state.p_mp+data["mana"])
+        add_log(f"🔮 +{data['mana']} MP.", "log-info")
+    elif data.get("buff") == "atk":
+        st.session_state.player_buff_atk = 3
+        add_log(f"🔥 ATK +50% (3t).", "log-info")
+    remove_item(name,1)
+
+def enemy_turn():
+    e = get_enemy_stats()
+    if st.session_state.enemy_frozen:
+        st.session_state.enemy_frozen = False
+        add_log(f"❄️ Congelado, pula turno.", "log-sys"); return
+    if random.random() < 0.3:
+        ability = random.choice(e["abilities"])
+        dmg = max(1, e["atk"] + random.randint(2,8) - st.session_state.p_def//2)
+        add_log(f"💀 '{ability}' → {dmg}!", "log-dmg")
+    else:
+        dmg = max(1, e["atk"] + random.randint(-3,3) - st.session_state.p_def//2)
+        add_log(f"💥 {dmg} dano.", "log-dmg")
+    if st.session_state.player_defending:
+        dmg //= 2; st.session_state.player_defending = False
+        add_log(f"🛡 Reduzido para {dmg}.", "log-info")
+    if st.session_state.player_buff_def > 0:
+        dmg = max(1, dmg-10); st.session_state.player_buff_def -= 1
+    st.session_state.p_hp -= dmg
+    if st.session_state.p_hp > 0 and st.session_state.p_hp < st.session_state.p_hp_max * 0.3:
+        st.session_state.narration = narrate("dmg")
+
+def next_turn(): st.session_state.turn += 1
+
+def check_combat_end():
+    if is_boss():
+        if st.session_state.boss_hp <= 0:
+            if st.session_state.boss_phase < len(BOSS_PHASES)-1:
+                st.session_state.boss_phase += 1
+                phase = BOSS_PHASES[st.session_state.boss_phase]
+                st.session_state.boss_hp = phase["hp"]
+                st.session_state.boss_hp_max = phase["hp"]
+                add_log(f"⚠️ {phase['name']}: {phase['dialogue']}", "log-crit")
+                st.session_state.narration = narrate(f"boss_p{st.session_state.boss_phase+1}")
+                st.session_state.enemy_frozen = False
+                return False
+            else:
+                add_log("🏆 BOSS DERROTADO!", "log-crit")
+                st.session_state.boss_defeated = True
+                st.session_state.game_complete = True
+                st.session_state.in_boss = False; st.session_state.in_combat = False
+                st.session_state.view = "mapa"
+                add_xp(500); st.session_state.total_gold += 1000
+                st.session_state.narration = narrate("win")
+                return True
+        if st.session_state.p_hp <= 0:
+            add_log("💀 Derrotado...", "log-dmg")
+            st.session_state.narration = narrate("death")
+            st.session_state.p_hp = st.session_state.p_hp_max//2
+            st.session_state.in_boss = False; st.session_state.in_combat = False
+            st.session_state.view = "mapa"
+            return True
+        return False
+    if st.session_state.enemy_hp <= 0:
+        e = ENEMIES[st.session_state.enemy]
+        xp, gold = e["xp"], e["gold"]
+        loot_msg = ""
+        if random.random() < 0.35:
+            loot = random.choice(["Poção de Restauração","Poção de Mana","Elixir de Fúria","Lâmina de Eco"])
+            add_item(loot,1); loot_msg = f" | +{loot}"
+        add_xp(xp); st.session_state.total_gold += gold
+        register_kill(st.session_state.enemy)
+        add_log(f"🏆 Vitória! +{xp}XP +{gold}💰{loot_msg}", "log-crit")
+        st.session_state.in_combat = False; st.session_state.view = "mapa"
+        st.session_state.narration = narrate("win")
+        check_quest_completion()
+        return True
+    if st.session_state.p_hp <= 0:
+        add_log("💀 Derrotado...", "log-dmg")
+        st.session_state.narration = narrate("death")
+        st.session_state.p_hp = max(1, st.session_state.p_hp_max//3)
+        st.session_state.in_combat = False; st.session_state.view = "mapa"
+        return True
+    return False
+
+def player_flee():
+    roll = random.randint(1,20) + st.session_state.p_level
+    if roll >= 12:
+        add_log("🏃 Escapou!", "log-info")
+        st.session_state.in_combat = False; st.session_state.view = "mapa"; return True
+    else:
+        if st.session_state.total_gold >= 50:
+            lost = random.randint(20,80)
+            st.session_state.total_gold = max(0, st.session_state.total_gold-lost)
+            add_log(f"❌ Fuga falhou! -{lost}💰", "log-dmg")
+        e = get_enemy_stats(); dmg = e["atk"] + random.randint(0,10)
+        st.session_state.p_hp -= dmg
+        add_log(f"💥 Ataque: {dmg} dano.", "log-dmg")
+        return False
+
+def start_combat(enemy_name):
+    e = ENEMIES[enemy_name]
+    st.session_state.in_combat = True; st.session_state.in_boss = False
+    st.session_state.enemy = enemy_name
+    st.session_state.enemy_hp = e["hp"]; st.session_state.enemy_hp_max = e["hp"]
+    st.session_state.enemy_frozen = False
+    st.session_state.turn = 0; st.session_state.log = []
+    st.session_state.player_buff_atk = 0; st.session_state.player_buff_def = 0
+    st.session_state.player_defending = False
+    st.session_state.view = "combate"
+    st.session_state.show_spells = False; st.session_state.show_items = False
+    st.session_state.narration = narrate("start")
+    st.session_state.hint = ""
+    add_log(f"⚔️ {enemy_name} apareceu!", "log-sys")
+
+def start_boss():
+    st.session_state.in_combat = True; st.session_state.in_boss = True
+    st.session_state.boss_phase = 0
+    phase = BOSS_PHASES[0]
+    st.session_state.boss_hp = phase["hp"]; st.session_state.boss_hp_max = phase["hp"]
+    st.session_state.enemy_frozen = False
+    st.session_state.turn = 0; st.session_state.log = []
+    st.session_state.player_buff_atk = 0; st.session_state.player_buff_def = 0
+    st.session_state.player_defending = False
+    st.session_state.view = "combate"
+    st.session_state.show_spells = False; st.session_state.show_items = False
+    st.session_state.narration = narrate("boss_p1")
+    st.session_state.hint = ""
+    add_log(f"⚠️ {st.session_state.world['boss_name']} desperta!", "log-crit")
+
+# ==============================================================================
+# HUD
+# ==============================================================================
+def render_hud():
+    hp_pct = int((st.session_state.p_hp / st.session_state.p_hp_max) * 100)
+    mp_pct = int((st.session_state.p_mp / st.session_state.p_mp_max) * 100)
+    xp_pct = int((st.session_state.p_xp / st.session_state.p_xp_next) * 100)
+    st.markdown(f"""
+    <div class="hud">
+      <div class="hud-row">
+        <div><span class="hud-badge">Nv</span><span class="hud-value"> {st.session_state.p_level}</span></div>
+        <div><span class="hud-badge">💰</span><span class="hud-value"> {st.session_state.total_gold}</span></div>
+        <div><span class="hud-badge">☠️</span><span class="hud-value"> {st.session_state.total_kills}</span></div>
+        <div><span class="hud-badge">⚔️</span><span class="hud-value"> {st.session_state.p_atk}</span></div>
+        <div><span class="hud-badge">🛡</span><span class="hud-value"> {st.session_state.p_def}</span></div>
+      </div>
+      <div class="hud-row" style="gap:10px;">
+        <div style="flex:1;"><div class="hud-badge">❤️ {st.session_state.p_hp}/{st.session_state.p_hp_max}</div>
+          <div class="bar"><div class="bar-fill bar-hp" style="width:{hp_pct}%"></div></div></div>
+        <div style="flex:1;"><div class="hud-badge">🔮 {st.session_state.p_mp}/{st.session_state.p_mp_max}</div>
+          <div class="bar"><div class="bar-fill bar-mp" style="width:{mp_pct}%"></div></div></div>
+      </div>
+      <div style="margin-top:6px;">
+        <div class="hud-badge">✨ XP {st.session_state.p_xp}/{st.session_state.p_xp_next}</div>
+        <div class="bar"><div class="bar-fill bar-xp" style="width:{xp_pct}%"></div></div>
+      </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+render_hud()
+
+# ==============================================================================
+# TELA DE COMBATE
+# ==============================================================================
+if st.session_state.view == "combate" and st.session_state.in_combat:
+    e = get_enemy_stats()
+    hp_now = st.session_state.boss_hp if is_boss() else st.session_state.enemy_hp
+    hp_max = st.session_state.boss_hp_max if is_boss() else st.session_state.enemy_hp_max
+    hp_pct = int((max(0,hp_now)/hp_max)*100) if hp_max else 0
+
+    if is_boss():
+        phase = BOSS_PHASES[st.session_state.boss_phase]
+        st.markdown(f"""<div class="boss-card">
+        <div class="phase-badge">{phase['name']}</div>
+        <div class="boss-name" style="margin-top:10px;">{st.session_state.world['boss_name']}</div>
+        <div style="margin-top:14px;" class="bar" style="height:14px;">
+          <div class="bar-fill bar-hp" style="width:{hp_pct}%;height:100%;"></div></div>
+        <div class="hud-badge" style="margin-top:6px;">HP {max(0,hp_now)} / {hp_max}</div>
+        </div>""", unsafe_allow_html=True)
+    else:
+        st.markdown(f"""<div class="enemy-card">
+        <div class="enemy-name">{e['name']}</div>
+        <div class="hud-badge" style="margin-top:4px;">{e['desc']}</div>
+        <div style="margin-top:12px;" class="bar" style="height:14px;">
+          <div class="bar-fill bar-hp" style="width:{hp_pct}%;height:100%;"></div></div>
+        <div class="hud-badge" style="margin-top:6px;">HP {max(0,hp_now)} / {hp_max}</div>
+        </div>""", unsafe_allow_html=True)
+
+    if st.session_state.narration:
+        st.markdown(f'<div class="narration">{st.session_state.narration}</div>', unsafe_allow_html=True)
+
+    st.markdown(f"<div class='hud-badge' style='text-align:center;margin-bottom:10px;'>TURNO {st.session_state.turn}</div>", unsafe_allow_html=True)
+
+    if st.button("⚔️ ATACAR", type="primary", use_container_width=True):
+        next_turn(); player_attack()
+        if not check_combat_end():
+            enemy_turn(); check_combat_end()
+        st.rerun()
+
+    c1, c2 = st.columns(2)
+    with c1:
+        if st.button("🛡 Defender", use_container_width=True):
+            next_turn(); player_defend(); enemy_turn(); check_combat_end(); st.rerun()
+    with c2:
+        if st.button("🏃 Fugir", use_container_width=True):
+            next_turn()
+            if player_flee(): st.rerun()
+            else: check_combat_end(); st.rerun()
+
+    if st.button("💡 Pedir dica", use_container_width=True):
+        st.session_state.hint = get_hint()
+        st.rerun()
+
+    if st.session_state.hint:
+        st.markdown(f'<div class="hint">{st.session_state.hint}</div>', unsafe_allow_html=True)
+
+    c1, c2 = st.columns(2)
+    with c1:
+        if st.button("🔮 Magias", use_container_width=True):
+            st.session_state.show_spells = not st.session_state.show_spells
+            st.session_state.show_items = False; st.rerun()
+    with c2:
+        if st.button("🧪 Itens", use_container_width=True):
+            st.session_state.show_items = not st.session_state.show_items
+            st.session_state.show_spells = False; st.rerun()
+
+    if st.session_state.show_spells:
+        st.markdown("#### 🔮 Magias")
+        for sname, sinfo in SPELLS.items():
+            disabled = st.session_state.p_mp < sinfo["cost"]
+            if st.button(f"{sinfo['element']} {sname} · {sinfo['cost']}MP",
+                         key=f"sp_{sname}", use_container_width=True, disabled=disabled):
+                next_turn(); player_cast_spell(sname)
+                if not check_combat_end():
+                    enemy_turn(); check_combat_end()
+                st.rerun()
+            st.caption(f"_{sinfo['desc']}_")
+
+    if st.session_state.show_items:
+        st.markdown("#### 🧪 Consumíveis")
+        cons = [it for it in st.session_state.inventory if ITEMS.get(it["name"],{}).get("type")=="consumível"]
+        if not cons: st.info("Nenhum consumível.")
+        else:
+            for it in cons:
+                if st.button(f"{it['name']} x{it['qty']} · {ITEMS[it['name']]['effect']}",
+                             key=f"use_{it['name']}", use_container_width=True):
+                    next_turn(); player_use_item(it["name"]); enemy_turn(); check_combat_end(); st.rerun()
+
+    with st.expander("📜 Ver log"):
+        log_html = "<div class='log'>"
+        for entry in reversed(st.session_state.log[-20:]):
+            log_html += f"<div class='{entry['cls']}'>{entry['text']}</div>"
+        log_html += "</div>"
+        st.markdown(log_html, unsafe_allow_html=True)
+
+    if st.button("⬅️ Voltar", use_container_width=True):
+        st.session_state.view = "mapa"
+        st.session_state.narration = ""
+        st.session_state.hint = ""
+        st.rerun()
+
+# ==============================================================================
+# TELAS DE NAVEGAÇÃO
+# ==============================================================================
+else:
+    view = st.session_state.view
+
+    nav1, nav2, nav3, nav4, nav5 = st.columns(5)
+    with nav1:
+        if st.button("🗺️", use_container_width=True, key="nv1"):
+            st.session_state.view = "mapa"; st.rerun()
+    with nav2:
+        if st.button("🧙", use_container_width=True, key="nv2"):
+            st.session_state.view = "npc"; st.rerun()
+    with nav3:
+        if st.button("🎒", use_container_width=True, key="nv3"):
+            st.session_state.view = "inv"; st.rerun()
+    with nav4:
+        if st.button("🏪", use_container_width=True, key="nv4"):
+            st.session_state.view = "shop"; st.rerun()
+    with nav5:
+        if st.button("📊", use_container_width=True, key="nv5"):
+            st.session_state.view = "status"; st.rerun()
+
+    st.markdown("---")
+
+    # ----------------- MAPA -----------------
+    if view == "mapa":
+        if st.session_state.game_complete:
+            st.balloons()
+            st.success(f"🎉 VITÓRIA! Você derrotou {st.session_state.world['boss_name']}!")
+
+        world = st.session_state.world
+
+        svg = ['<svg viewBox="0 0 500 900" style="width:100%;background:#0a0d12;border:1px solid #1e2a38;border-radius:14px;">']
+        svg.append('<defs><pattern id="dots" width="20" height="20" patternUnits="userSpaceOnUse"><circle cx="10" cy="10" r="0.8" fill="#1a2330"/></pattern></defs>')
+        svg.append('<rect width="500" height="900" fill="url(#dots)"/>')
+        for n1, n2 in world["connections"]:
+            r1, r2 = world["regions"][n1], world["regions"][n2]
+            svg.append(f'<line x1="{r1["x"]:.0f}" y1="{r1["y"]:.0f}" x2="{r2["x"]:.0f}" y2="{r2["y"]:.0f}" stroke="#1e2a38" stroke-width="2" stroke-dasharray="5,7"/>')
+        for name, d in world["regions"].items():
+            visited = name in st.session_state.visited
+            fill = d["color"] if visited else "#18222e"
+            svg.append(f'''<circle cx="{d['x']:.0f}" cy="{d['y']:.0f}" r="{d['r']}" fill="{fill}" stroke="{d['stroke']}" stroke-width="2.5" opacity="0.95"/>
+            <text x="{d['x']:.0f}" y="{d['y']-6:.0f}" text-anchor="middle" fill="#e8edf4" font-family="Manrope,sans-serif" font-weight="800" font-size="13">{name}</text>
+            <text x="{d['x']:.0f}" y="{d['y']+12:.0f}" text-anchor="middle" fill="#8b9aab" font-size="14">{d['emoji']}</text>''')
+        svg.append('</svg>')
+        st.markdown("".join(svg), unsafe_allow_html=True)
+
+        st.markdown("### 📍 Regiões")
+        for rname, d in world["regions"].items():
+            visited = "✅" if rname in st.session_state.visited else "🔘"
+            boss_marker = " 👁️" if d["has_boss"] else ""
+            npc_marker = " 🧙" if d.get("npc") else ""
+            stars = "⭐" * d["danger"]
+            st.markdown(f"""<div class="card biome-{d['biome']}">
+            <div class="card-title">{visited} {d['emoji']} {rname}{boss_marker}{npc_marker}</div>
+            <div class="card-sub">Perigo: {stars}</div>
+            <div class="card-desc">{d['desc']}</div>
+            </div>""", unsafe_allow_html=True)
+            if st.button(f"Entrar em {rname}", key=f"go_{rname}", use_container_width=True):
+                if rname not in st.session_state.visited:
+                    st.session_state.visited.append(rname)
+                st.session_state.current_region = rname
+                st.rerun()
+
+        if st.session_state.current_region:
+            region = st.session_state.current_region
+            d = world["regions"][region]
+            st.markdown(f"---\n### ⚔️ {d['emoji']} {region}")
+
+            for ename in d["enemies"]:
+                e = ENEMIES[ename]
+                st.markdown(f"""<div class="enemy-card">
+                <div class="enemy-name">{ename}</div>
+                <div class="card-sub">HP {e['hp']} · ATK {e['atk']} · DEF {e['def']}</div>
+                <div class="card-desc">{e['desc']}</div>
+                </div>""", unsafe_allow_html=True)
+                if st.button(f"⚔️ Lutar", key=f"f_{ename}", type="primary", use_container_width=True):
+                    start_combat(ename); st.rerun()
+
+            if d.get("npc"):
+                npc = d["npc"]; q = npc["quest"]
+                done = q["id"] in st.session_state.quests_done
+                st.markdown(f"""<div class="card" style="border-left:4px solid #c08aff;">
+                <div class="card-title">🧙 {npc['name']}</div>
+                <div class="card-sub">{npc['title']}</div>
+                <div class="card-desc" style="font-style:italic;">"{npc['dialog']}"</div>
+                <div class="card-desc" style="color:#8aa9ff;font-weight:700;margin-top:10px;">📜 {q['title']}</div>
+                <div class="card-desc">{q['goal']}</div>
+                <div class="card-sub">💰{q['reward_gold']} · ✨{q['reward_xp']} · 🎁{q['reward_item']}</div>
+                <div class="card-sub" style="color:{'#6dd47e' if done else '#8b9aab'};">{'✅' if done else '⏳'}</div>
+                </div>""", unsafe_allow_html=True)
+
+            if d["has_boss"]:
+                st.markdown(f"""<div class="boss-card">
+                <div class="boss-name">👁️ {world['boss_name']}</div>
+                <div class="card-sub" style="margin-top:8px;">O Boss Final · Nível 8+</div>
+                </div>""", unsafe_allow_html=True)
+                if st.session_state.boss_defeated:
+                    st.success("✅ Já derrotado!")
+                else:
+                    if st.button("🚪 ENTRAR NO BOSS", type="primary", use_container_width=True):
+                        start_boss(); st.rerun()
+
+    # ----------------- NPCs -----------------
+    elif view == "npc":
+        st.markdown("### 🧙 Missões")
+        any_npc = False
+        for rname, d in st.session_state.world["regions"].items():
+            npc = d.get("npc")
+            if not npc: continue
+            any_npc = True
+            q = npc["quest"]
+            done = q["id"] in st.session_state.quests_done
+            req = q["requires"]
+            prog = st.session_state.kill_count.get(req["kill"],0) if "kill" in req else count_item(req["item"])
+            st.markdown(f"""<div class="card" style="border-left:4px solid {'#6dd47e' if done else '#c08aff'};">
+            <div class="card-title">🧙 {npc['name']}</div>
+            <div class="card-sub">{npc['title']} · {d['emoji']} {rname}</div>
+            <div class="card-desc" style="font-style:italic;">"{npc['dialog']}"</div>
+            <div class="card-desc" style="color:#8aa9ff;font-weight:700;margin-top:10px;">📜 {q['title']}</div>
+            <div class="card-desc">{q['goal']}</div>
+            <div class="card-sub">Progresso: {prog}/{req['count']}</div>
+            <div class="card-sub">💰{q['reward_gold']} · ✨{q['reward_xp']} · 🎁{q['reward_item']}</div>
+            </div>""", unsafe_allow_html=True)
+        if not any_npc: st.info("Nenhum NPC neste mundo.")
+
+    # ----------------- INVENTÁRIO -----------------
+    elif view == "inv":
+        st.markdown("### 🎒 Inventário")
+        c1, c2 = st.columns(2)
+        with c1: st.caption(f"⚔️ {st.session_state.equipped_weapon or 'Sem arma'}")
+        with c2: st.caption(f"🛡 {st.session_state.equipped_armor or 'Sem armadura'}")
+        if not st.session_state.inventory:
+            st.info("Inventário vazio.")
+        else:
+            for i, item in enumerate(st.session_state.inventory):
+                name = item["name"]; data = ITEMS.get(name,{})
+                rarity = data.get("rarity","Comum"); effect = data.get("effect","-")
+                st.markdown(f"""<div class="card rar-{rarity}">
+                <div class="card-title">{name} <span class="card-sub">x{item['qty']}</span></div>
+                <div class="card-desc">{effect}</div>
+                <div class="card-sub">{rarity} · {data.get('type','item').upper()}</div>
+                </div>""", unsafe_allow_html=True)
+                if data.get("type") == "arma":
+                    if st.button("Equipar arma", key=f"eqw_{i}", use_container_width=True):
+                        st.session_state.equipped_weapon = name; st.rerun()
+                elif data.get("type") == "armadura":
+                    if st.button("Equipar armadura", key=f"eqa_{i}", use_container_width=True):
+                        st.session_state.equipped_armor = name; st.rerun()
+                elif data.get("type") == "consumível":
+                    if st.button("Usar", key=f"us_{i}", use_container_width=True):
+                        player_use_item(name); st.rerun()
+                if st.button("Descartar", key=f"dr_{i}", use_container_width=True):
+                    remove_item(name,1); st.rerun()
+
+    # ----------------- LOJA -----------------
+    elif view == "shop":
+        st.markdown("### 🏪 Loja")
+        for name, data in ITEMS.items():
+            price = data["value"]
+            st.markdown(f"""<div class="card rar-{data['rarity']}">
+            <div class="card-title">{name}</div>
+            <div class="card-desc">{data['effect']}</div>
+            <div class="card-sub">{data['rarity']} · {price}💰</div>
+            </div>""", unsafe_allow_html=True)
+            if st.button(f"Comprar por {price}💰", key=f"b_{name}", use_container_width=True):
+                if st.session_state.total_gold >= price:
+                    st.session_state.total_gold -= price
+                    add_item(name,1); check_quest_completion(); st.rerun()
+                else: st.error("Ouro insuficiente.")
+
+    # ----------------- STATUS -----------------
+    elif view == "status":
+        st.markdown("### 📊 Ficha")
+
+        st.markdown(f"""<div class="card">
+        <div class="card-title">Nível {st.session_state.p_level}</div>
+        <div class="card-sub">XP {st.session_state.p_xp}/{st.session_state.p_xp_next}</div>
+        </div>
+        <div class="card">
+        <div class="card-title">Atributos</div>
+        <div class="card-desc">⚔️ ATK: {st.session_state.p_atk}</div>
+        <div class="card-desc">🛡 DEF: {st.session_state.p_def}</div>
+        <div class="card-desc">🔮 MAG: {st.session_state.p_mag}</div>
+        </div>""", unsafe_allow_html=True)
+
+        st.markdown("#### 📜 Magias")
+        for sname, sinfo in SPELLS.items():
+            st.markdown(f"""<div class="card" style="padding:10px;">
+            <div class="card-title" style="font-size:.95rem;">{sinfo['element']} {sname}</div>
+            <div class="card-sub">{sinfo['cost']} MP · {sinfo['desc']}</div>
+            </div>""", unsafe_allow_html=True)
+
+        st.markdown("#### ☠️ Abates")
+        if st.session_state.kill_count:
+            for k,v in st.session_state.kill_count.items(): st.caption(f"• {k}: {v}")
+        else: st.caption("Nenhum ainda.")
+
+        st.markdown("#### 🏆 Conquistas")
+        ach = [
+            ("Primeira Sangue", st.session_state.total_kills >= 1),
+            ("Caçador", st.session_state.total_kills >= 5),
+            ("Lendário", st.session_state.total_kills >= 15),
+            ("Nível 5", st.session_state.p_level >= 5),
+            ("Nível 10", st.session_state.p_level >= 10),
+            ("Rico", st.session_state.total_gold >= 1000),
+            ("Herói", st.session_state.boss_defeated),
+        ]
+        for name, done in ach:
+            st.caption(f"{'✅' if done else '⬜'} {name}")
+
+        st.markdown("---")
+        st.markdown("#### 🌍 Novo Mundo")
+        if st.button("🎲 Gerar Novo Mundo", type="primary", use_container_width=True):
+            new_world(); st.rerun()
+        seed_val = st.number_input("Seed (0 = aleatória)", value=0, step=1, min_value=0)
+        if st.button("🎯 Gerar com Seed", use_container_width=True):
+            new_world(seed=seed_val if seed_val != 0 else None); st.rerun()
+
+st.markdown('<div style="text-align:center;color:#4a5a6a;font-family:DM Mono,monospace;font-size:0.65rem;margin-top:20px;">MUNDORA · MOBILE · v5.0</div>', unsafe_allow_html=True)
